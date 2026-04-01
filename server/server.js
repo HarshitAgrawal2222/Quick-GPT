@@ -1,55 +1,63 @@
-// 🔥 MUST BE FIRST LINE — NO IMPORT ABOVE THIS
-import "dotenv/config";
-
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import connectDB from "./configs/db.js";
 
-import userRouter from "./routes/userRoutes.js";
-import chatRouter from "./routes/chatRoutes.js";
-import messageRouter from "./routes/messageRoutes.js";
-import creditRouter from "./routes/creditRoutes.js";
-import { stripeWebhooks } from "./controllers/webhooks.js";
+dotenv.config();
 
 const app = express();
 
-// Connect DB
-await connectDB();
+// ✅ Allowed Origins (IMPORTANT)
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://quick-gpt-o6ef-g7uc9vbpu-harshit-agrawals-projects-e04e4394.vercel.app"
+];
 
-/* ================= CORS FIX ================= */
+// ✅ CORS Setup
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173", // local frontend
-      "https://quick-gpt-o6ef-mryt3ydpa-harshit-agrawals-projects-e04e4394.vercel.app" // deployed frontend
-    ],
+    origin: function (origin, callback) {
+      // allow requests with no origin (like Postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 
-/* ================= MIDDLEWARE ================= */
-app.use(cookieParser());
+// ✅ Middlewares
 app.use(express.json());
+app.use(cookieParser());
 
-/* ================= STRIPE ================= */
-app.post(
-  "/api/stripe",
-  express.raw({ type: "application/json" }),
-  stripeWebhooks
-);
+// ✅ Test Route
+app.get("/", (req, res) => {
+  res.send("API is working 🚀");
+});
 
-/* ================= HEALTH CHECK ================= */
-app.get("/", (req, res) => res.send("Server is Live"));
+// ✅ Register Route (example)
+app.post("/api/user/register", (req, res) => {
+  const { name, email, password } = req.body;
 
-/* ================= ROUTES ================= */
-app.use("/api/user", userRouter);
-app.use("/api/chat", chatRouter);
-app.use("/api/message", messageRouter);
-app.use("/api/credit", creditRouter);
+  if (!name || !email || !password) {
+    return res.json({
+      success: false,
+      message: "Missing Details",
+    });
+  }
 
-/* ================= SERVER ================= */
-const PORT = process.env.PORT || 3000;
+  return res.json({
+    success: true,
+    message: "User registered successfully",
+  });
+});
+
+// ✅ PORT
+const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
