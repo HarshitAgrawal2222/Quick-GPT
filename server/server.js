@@ -3,7 +3,7 @@ import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
-import cookieParser from "cookie-parser"; // ✅ ADDED
+import cookieParser from "cookie-parser";
 import connectDB from "./configs/db.js";
 
 import userRouter from "./routes/userRoutes.js";
@@ -12,40 +12,45 @@ import messageRouter from "./routes/messageRoutes.js";
 import creditRouter from "./routes/creditRoutes.js";
 import { stripeWebhooks } from "./controllers/webhooks.js";
 
-
-
 const app = express();
 
 // Connect DB
 await connectDB();
 
-// ✅ FIXED CORS (IMPORTANT)
-app.use(cors({
-  origin: "http://localhost:5173", // frontend URL
-  credentials: true
-}));
+/* ================= CORS FIX ================= */
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // local frontend
+      "https://quick-gpt-o6ef-mryt3ydpa-harshit-agrawals-projects-e04e4394.vercel.app" // deployed frontend
+    ],
+    credentials: true,
+  })
+);
 
-// ✅ ADDED (for cookies)
+/* ================= MIDDLEWARE ================= */
 app.use(cookieParser());
-
 app.use(express.json());
 
-// Stripe webhook (raw body only for this route)
+/* ================= STRIPE ================= */
 app.post(
   "/api/stripe",
   express.raw({ type: "application/json" }),
   stripeWebhooks
 );
 
-// Health check
+/* ================= HEALTH CHECK ================= */
 app.get("/", (req, res) => res.send("Server is Live"));
 
-// Routes
+/* ================= ROUTES ================= */
 app.use("/api/user", userRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/message", messageRouter);
 app.use("/api/credit", creditRouter);
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+/* ================= SERVER ================= */
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
