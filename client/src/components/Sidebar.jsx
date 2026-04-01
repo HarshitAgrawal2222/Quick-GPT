@@ -3,173 +3,112 @@ import { useAppContext } from "../context/AppContext";
 import { assets } from "../assets/assets";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
-  const { chats, setChats, setSelectedChat, theme, setTheme, user } =
-    useAppContext();
-  const [search, setSearch] = useState("");
-  const navigate = useNavigate();
+  const {
+    chats,
+    setChats,
+    setSelectedChat,
+    theme,
+    setTheme,
+    user,
+    axios,
+    createNewChat,
+    token,
+    setToken,
+    setUser,
+  } = useAppContext();
 
-  const deleteChat = (id, e) => {
-    e.stopPropagation();
-    if (!window.confirm("Delete this chat?")) return;
-    const updated = chats.filter((c) => c._id !== id);
-    setChats(updated);
-    setSelectedChat(null);
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+    setUser(null);
+    toast.success("Logged out");
+    navigate("/login");
   };
 
   return (
-    <div
-      className={`flex flex-col h-screen min-w-72 p-5 
-      dark:bg-linear-to-b from-[#242124]/30 to-[#000000]/30 
-      border-r border-[#80609F]/30 backdrop-blur-3xl transition-all duration-500 
-      max-md:absolute left-0 z-10 
-      ${!isMenuOpen && "max-md:-translate-x-full"}`}
-    >
+    <div className="flex flex-col h-screen min-w-72 p-5 
+    bg-white dark:bg-[#1e1e1e] 
+    border-r border-gray-200 dark:border-white/10">
+
       {/* LOGO */}
       <img
         src={theme === "dark" ? assets.logo_full : assets.logo_full_dark}
-        alt="logo"
         className="w-full max-w-48"
       />
 
       {/* NEW CHAT */}
-      <button className="flex justify-center items-center w-full py-2 mt-10 text-white bg-linear-to-r from-[#A456F7] to-[#3D81F6] text-sm rounded-md">
-        <span className="mr-2 text-xl">+</span> New Chat
+      <button
+        onClick={createNewChat}
+        className="mt-8 py-2 text-white rounded-md 
+        bg-gradient-to-r from-purple-500 to-blue-500"
+      >
+        + New Chat
       </button>
 
       {/* SEARCH */}
-      <div className="flex items-center gap-2 p-3 mt-4 border border-gray-400 dark:border-white/20 rounded-md">
-        <img src={assets.search_icon} className="w-4 dark:invert" alt="search" />
-        <input
-          onChange={(e) => setSearch(e.target.value)}
-          value={search}
-          type="text"
-          placeholder="Search conversations"
-          className="text-xs placeholder:text-gray-400 outline-none bg-transparent"
-        />
-      </div>
-
-      {chats.length > 0 && (
-        <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
-          Recent Chats
-        </p>
-      )}
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search conversations"
+        className="mt-4 p-2 border rounded-md bg-transparent"
+      />
 
       {/* CHAT LIST */}
-      <div className="flex-1 overflow-y-scroll mt-3 text-sm space-y-3">
-        {chats
-          .filter((chat) =>
-            chat.messages.length
-              ? chat.messages[0].content
-                  .toLowerCase()
-                  .includes(search.toLowerCase())
-              : chat.name.toLowerCase().includes(search.toLowerCase())
-          )
-          .map((chat) => (
-            <div
-              key={chat._id}
-              onClick={() => {
-                navigate("/");
-                setSelectedChat(chat);
-                setIsMenuOpen(false);
-              }}
-              className="p-2 px-4 dark:bg-[#57317C]/10 border border-gray-300 dark:border-[#80609F]/15 rounded-md cursor-pointer flex justify-between items-center group"
-            >
-              <div>
-                <p className="truncate w-full">
-                  {chat.messages.length
-                    ? chat.messages[0].content.slice(0, 32)
-                    : chat.name}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-[#B1A6C0]">
-                  {moment(chat.updatedAt).fromNow()}
-                </p>
-              </div>
-
-              {/* DELETE ICON */}
-              <div
-                onClick={(e) => deleteChat(chat._id, e)}
-                className="hidden group-hover:flex items-center justify-center w-5 h-5 rounded bg-red-600 text-white text-xs font-bold cursor-pointer"
-              >
-                X
-              </div>
+      <div className="flex-1 mt-4 space-y-3 overflow-y-auto">
+        {chats.map((chat) => (
+          <div
+            key={chat._id}
+            onClick={() => setSelectedChat(chat)}
+            className="p-3 border rounded-md cursor-pointer flex justify-between"
+          >
+            <div>
+              <p className="text-sm dark:text-white">
+                {chat.messages[0]?.content || "New Chat"}
+              </p>
+              <p className="text-xs text-gray-400">
+                {moment(chat.updatedAt).fromNow()}
+              </p>
             </div>
-          ))}
+          </div>
+        ))}
       </div>
 
-      {/* Community Images */}
-      <div
-        onClick={() => {
-          navigate("/community");
-          setIsMenuOpen(false);
-        }}
-        className="flex items-center gap-2 p-3 mt-4 border border-gray-300 dark:border-white/15 rounded-md cursor-pointer hover:scale-105 transition-all"
-      >
-        <img src={assets.gallery_icon} className="w-4 dark:invert" alt="gallery" />
-        <div className="text-sm">
-          <p>Community Images</p>
-        </div>
-      </div>
+      {/* COMMUNITY */}
+      <div className="border p-3 rounded-md mt-3">📷 Community Images</div>
 
-      {/* Credits */}
-      <div
-        onClick={() => {
-          navigate("/credits");
-          setIsMenuOpen(false);
-        }}
-        className="flex items-center gap-2 p-3 mt-4 border border-gray-300 dark:border-white/15 rounded-md cursor-pointer hover:scale-105 transition-all"
-      >
-        <img src={assets.diamond_icon} className="w-4 dark:invert" alt="credits" />
-        <div className="text-sm">
-          <p>Credits : {user?.credits}</p>
-          <p className="text-xs text-gray-400">Purchase credits to use quick gpt</p>
-        </div>
+      {/* CREDITS */}
+      <div className="border p-3 rounded-md mt-3">
+        💎 Credits: {user?.credits || 0}
       </div>
 
       {/* DARK MODE */}
-      <div className="flex items-center justify-between gap-2 p-3 mt-4 border border-gray-300 dark:border-white/15 rounded-md">
-        <div className="flex items-center gap-2 text-sm">
-          <img src={assets.theme_icon} className="w-4 dark:invert" alt="theme" />
-          <p>Dark Mode</p>
-        </div>
-
-        <label className="relative inline-flex cursor-pointer items-center">
-          <input
-            type="checkbox"
-            className="sr-only peer"
-            checked={theme === "dark"}
-            onChange={() => setTheme(theme === "dark" ? "light" : "dark")}
-          />
-          <div className="w-9 h-5 bg-gray-400 peer-checked:bg-purple-600 rounded-full transition-all relative">
-            <span className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-transform peer-checked:translate-x-4"></span>
-          </div>
-        </label>
+      <div className="border p-3 rounded-md mt-3 flex justify-between">
+        🌙 Dark Mode
+        <input
+          type="checkbox"
+          checked={theme === "dark"}
+          onChange={() =>
+            setTheme(theme === "dark" ? "light" : "dark")
+          }
+        />
       </div>
 
-      {/* User Account */}
-      <div className="flex items-center gap-3 p-3 mt-4 border border-gray-300 dark:border-white/15 rounded-md cursor-pointer group">
-        <img src={assets.user_icon} className="w-7 rounded-full" alt="user" />
-        <p className="flex-1 text-sm truncate dark:text-primary">
-          {user ? user.name : "Login your account"}
-        </p>
-
-        {user && (
-          <img
-            src={assets.logout_icon}
-            className="h-5 cursor-pointer hidden group-hover:block dark:invert"
-            alt="logout"
-          />
-        )}
+      {/* USER */}
+      <div className="flex items-center gap-3 mt-4 border p-3 rounded-md">
+        <img src={assets.user_icon} className="w-7" />
+        <p className="flex-1 dark:text-white">{user?.name}</p>
+        <img
+          onClick={logout}
+          src={assets.logout_icon}
+          className="h-5 cursor-pointer"
+        />
       </div>
-
-      {/* Close Button Mobile */}
-      <img
-        onClick={() => setIsMenuOpen(false)}
-        src={assets.close_icon}
-        className="absolute top-3 right-3 w-5 h-5 cursor-pointer md:hidden dark:invert"
-        alt="close"
-      />
     </div>
   );
 };

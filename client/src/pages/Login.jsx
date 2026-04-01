@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { useAppContext } from "../context/AppContext";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [state, setState] = useState("login"); // login | signup
@@ -6,20 +9,50 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const { axios, setToken } = useAppContext();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (state === "login") {
-      console.log("LOGIN:", { email, password });
-    } else {
-      console.log("SIGN UP:", { name, email, password });
+    const url =
+      state === "login"
+        ? "/api/user/login"
+        : "/api/user/register";
+
+    const payload =
+      state === "login"
+        ? { email, password }
+        : { name, email, password };
+
+    try {
+      const { data } = await axios.post(url, payload);
+
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        setToken(data.token);
+        toast.success(
+          state === "login" ? "Login successful" : "Account created"
+        );
+        navigate("/");
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
     }
+  };
+
+  const switchMode = (mode) => {
+    setState(mode);
+    setName("");
+    setEmail("");
+    setPassword("");
   };
 
   return (
     <main className="flex items-center justify-center w-full min-h-screen 
                     bg-linear-to-b from-[#242124] to-[#000000] px-4">
-
       <form
         onSubmit={handleSubmit}
         className="flex w-full flex-col max-w-md 
@@ -27,7 +60,6 @@ const Login = () => {
                    p-10 rounded-2xl shadow-lg 
                    border border-purple-700/40"
       >
-        {/* Heading */}
         <h2 className="text-4xl font-semibold text-purple-200 text-center">
           {state === "login" ? "Sign In" : "Sign Up"}
         </h2>
@@ -38,75 +70,60 @@ const Login = () => {
             : "Create your account to get started."}
         </p>
 
-        {/* Name (Signup only) */}
         {state === "signup" && (
           <div className="mt-8">
             <label className="font-medium text-purple-200">Name</label>
             <input
               type="text"
-              placeholder="Enter your name"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="mt-2 rounded-lg bg-[#2a2730] text-white 
-                         focus:ring-2 focus:ring-purple-500 
-                         outline-none px-3 py-3 w-full 
-                         border border-purple-700/40"
+                         px-3 py-3 w-full border border-purple-700/40"
             />
           </div>
         )}
 
-        {/* Email */}
         <div className="mt-8">
           <label className="font-medium text-purple-200">Email</label>
           <input
             type="email"
-            placeholder="Enter your email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-2 rounded-lg bg-[#2a2730] text-white 
-                       focus:ring-2 focus:ring-purple-500 
-                       outline-none px-3 py-3 w-full 
-                       border border-purple-700/40"
+                       px-3 py-3 w-full border border-purple-700/40"
           />
         </div>
 
-        {/* Password */}
         <div className="mt-6">
           <label className="font-medium text-purple-200">Password</label>
           <input
             type="password"
-            placeholder="Enter your password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 rounded-lg bg-[#2a2730] text-white
-                       focus:ring-2 focus:ring-purple-500 
-                       outline-none px-3 py-3 w-full 
-                       border border-purple-700/40"
+            className="mt-2 rounded-lg bg-[#2a2730] text-white 
+                       px-3 py-3 w-full border border-purple-700/40"
           />
         </div>
 
-        {/* Button */}
         <button
           type="submit"
           className="mt-8 py-3 w-full rounded-lg 
                      bg-linear-to-r from-purple-600 to-purple-800 
-                     text-white font-semibold 
-                     transition hover:opacity-90 shadow-md"
+                     text-white font-semibold"
         >
           {state === "login" ? "Login" : "Create Account"}
         </button>
 
-        {/* Switch */}
         <p className="text-center pt-6 text-purple-300/80">
           {state === "login" ? (
             <>
               Don’t have an account?{" "}
               <span
-                onClick={() => setState("signup")}
-                className="text-purple-400 hover:underline cursor-pointer"
+                onClick={() => switchMode("signup")}
+                className="text-purple-400 cursor-pointer"
               >
                 Sign up
               </span>
@@ -115,8 +132,8 @@ const Login = () => {
             <>
               Already have an account?{" "}
               <span
-                onClick={() => setState("login")}
-                className="text-purple-400 hover:underline cursor-pointer"
+                onClick={() => switchMode("login")}
+                className="text-purple-400 cursor-pointer"
               >
                 Login
               </span>
@@ -129,3 +146,5 @@ const Login = () => {
 };
 
 export default Login;
+
+

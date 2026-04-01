@@ -1,61 +1,113 @@
-import React, { useState, useEffect,useRef } from 'react'
-import { useAppContext } from '../context/AppContext'
-import { assets } from '../assets/assets'
-import Message from './Message'
+import React, { useState, useEffect, useRef } from "react";
+import { useAppContext } from "../context/AppContext";
+import { assets } from "../assets/assets";
+import Message from "./Message";
+import toast from "react-hot-toast";
 
 const ChatBox = () => {
-  const containerRef = useRef(null)
-  const { selectedChat, theme } = useAppContext()
+  const containerRef = useRef(null);
 
-  const [messages, setMessages] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [prompt, setPrompt] = useState('')
-  const [mode, setMode] = useState('text')
-  const [isPublished, setIsPublished] = useState(false)
+  const { selectedChat, theme, user, axios, token, setUser } = useAppContext();
 
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [mode, setMode] = useState("text");
+  const [isPublished, setIsPublished] = useState(false);
+
+  /* ---------------- SEND MESSAGE ---------------- */
   const onSubmit = async (e) => {
-    e.preventDefault()
-    if (!prompt.trim()) return
+    e.preventDefault();
 
-    setLoading(true)
+    if (!user) return toast.error("Login to send message");
+    if (!selectedChat) return toast.error("Select a chat first");
+    if (!prompt.trim()) return;
 
-    console.log("Prompt:", prompt)
-    console.log("Mode:", mode)
-    console.log("Publish:", isPublished)
+    const promptCopy = prompt;
+    setPrompt("");
+    setLoading(true);
 
-    setLoading(false)
-    setPrompt("")
-  }
+    // show user message immediately
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: promptCopy,
+        timestamp: Date.now(),
+        isImage: false,
+      },
+    ]);
 
+    try {
+      const { data } = await axios.post(
+        `/api/message/${mode}`,
+        {
+          chatId: selectedChat._id,
+          prompt: promptCopy,
+          isPublished,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (data.success) {
+        setMessages((prev) => [...prev, data.reply]);
+
+        // update credits locally
+        setUser((prev) => ({
+          ...prev,
+          credits: Math.max(
+            0,
+            prev.credits - (mode === "image" ? 2 : 1)
+          ),
+        }));
+
+        if (mode === "image") {
+          setIsPublished(false);
+        }
+      } else {
+        toast.error(data.message);
+        setPrompt(promptCopy);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+      setPrompt(promptCopy);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ---------------- LOAD CHAT MESSAGES ---------------- */
   useEffect(() => {
     if (selectedChat) {
-      setMessages(selectedChat.messages)
+      setMessages(selectedChat.messages || []);
     }
-  }, [selectedChat])
+  }, [selectedChat]);
 
-  useEffect(()=>{
-    if(containerRef.current){
+  /* ---------------- AUTO SCROLL ---------------- */
+  useEffect(() => {
+    if (containerRef.current) {
       containerRef.current.scrollTo({
-        top:containerRef.current.scrollHeight,
-        behaviour:"smooth",
-      })
+        top: containerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }
-  },[messages])
+  }, [messages]);
 
   return (
-    <div className="flex-1 flex flex-col justify-between m-5 md:m-10 xl:mx-30 max-md:mt-14 2xl:pr-40">
-
-      {/* Chat messages */}
+    <div className="flex-1 flex flex-col justify-between m-5 md:m-10 max-md:mt-14">
+      
+      {/* CHAT AREA */}
       <div ref={containerRef} className="flex-1 mb-5 overflow-y-scroll">
-
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center gap-2 text-primary">
+          <div className="h-full flex flex-col items-center justify-center gap-2">
             <img
-              src={theme === 'dark' ? assets.logo_full : assets.logo_full_dark}
-              alt=""
-              className="w-full max-w-56 sm:max-w-68"
+              src={theme === "dark" ? assets.logo_full : assets.logo_full_dark}
+              className="w-full max-w-56"
+              alt="logo"
             />
-            <p className="mt-5 text-4xl sm:text-6xl text-center text-gray-400 dark:text-white">
+            <p className="mt-5 text-4xl text-gray-400">
               Ask me anything
             </p>
           </div>
@@ -66,60 +118,61 @@ const ChatBox = () => {
         ))}
 
         {loading && (
-          <div className="loader flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-gray-500 dark:bg-white animate-bounce"></div>
-            <div className="w-1.5 h-1.5 rounded-full bg-gray-500 dark:bg-white animate-bounce"></div>
-            <div className="w-1.5 h-1.5 rounded-full bg-gray-500 dark:bg-white animate-bounce"></div>
+          <div className="flex gap-1 mt-2">
+            <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" />
+            <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" />
+            <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" />
           </div>
         )}
       </div>
 
-      {/* Publish to Community (only for image mode) */}
-      {mode === 'image' && (
-        <label className="inline-flex items-center gap-2 mb-3 text-sm mx-auto mt-2">
-          <p className="text-xs">Publish Generated Image to Community</p>
+      {/* IMAGE PUBLISH OPTION */}
+      {mode === "image" && (
+        <label className="flex items-center gap-2 text-xs mx-auto mb-3">
+          Publish to Community
           <input
             type="checkbox"
-            className="cursor-pointer"
             checked={isPublished}
             onChange={(e) => setIsPublished(e.target.checked)}
           />
         </label>
       )}
 
-      {/* Prompt Input Box */}
+      {/* INPUT BOX */}
       <form
         onSubmit={onSubmit}
-        className="bg-primary/20 dark:bg-[#583C79]/30 border border-primary dark:border-[#80609F]/30
-               rounded-full w-full max-w-2xl p-3 pl-4 mx-auto flex gap-4 items-center"
+        className="rounded-full p-3 flex gap-4 border border-gray-300 dark:border-white/20"
       >
         <select
-          onChange={(e) => setMode(e.target.value)}
           value={mode}
-          className="text-sm pl-3 pr-2 outline-none bg-transparent"
+          onChange={(e) => setMode(e.target.value)}
+          className="bg-transparent outline-none"
         >
-          <option className="dark:bg-purple-900" value="text">Text</option>
-          <option className="dark:bg-purple-900" value="image">Image</option>
+          <option value="text">Text</option>
+          <option value="image">Image</option>
         </select>
 
+        {/* ✅ FIXED INPUT */}
         <input
-          onChange={(e) => setPrompt(e.target.value)}
+          id="prompt"
+          name="prompt"
+          autoComplete="off"
           value={prompt}
-          type="text"
-          placeholder="Type your prompt here..."
-          className="flex-1 w-full text-sm outline-none bg-transparent"
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Ask anything..."
+          className="flex-1 bg-transparent outline-none"
         />
 
-        <button disabled={loading}>
+        <button disabled={loading || !selectedChat}>
           <img
             src={loading ? assets.stop_icon : assets.send_icon}
-            className="w-8 cursor-pointer"
-            alt=""
+            className="w-8"
+            alt="send"
           />
         </button>
       </form>
     </div>
-  )
-}
+  );
+};
 
-export default ChatBox
+export default ChatBox;
