@@ -7,26 +7,31 @@ dotenv.config();
 
 const app = express();
 
-// ✅ SIMPLE & GUARANTEED CORS FIX
+// ✅ CORS
 app.use(cors({
   origin: true,
   credentials: true
 }));
 
-// ✅ HANDLE PREFLIGHT (VERY IMPORTANT)
-app.options("*", (req, res) => {
+// ✅ FIX (instead of app.options)
+app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.header("Access-Control-Allow-Credentials", "true");
-  res.sendStatus(200);
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
 });
 
-// ✅ Middlewares
+// middlewares
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ Routes
+// routes
 app.get("/", (req, res) => {
   res.send("API working 🚀");
 });
@@ -35,9 +40,6 @@ app.post("/api/user/register", (req, res) => {
   res.json({ success: true, message: "Registered successfully" });
 });
 
-// ✅ Server
+// server
 const PORT = process.env.PORT || 4000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on ${PORT}`));
