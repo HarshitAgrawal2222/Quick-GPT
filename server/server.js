@@ -7,58 +7,33 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Allowed Origins (IMPORTANT)
+// ✅ Allowed origins (VERY IMPORTANT)
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://quick-gpt-o6ef-g7uc9vbpu-harshit-agrawals-projects-e04e4394.vercel.app"
+  "https://quick-gpt-o6ef-7u5i1f5qf-harshit-agrawals-projects-e04e4394.vercel.app"
 ];
 
-// ✅ CORS Setup
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like Postman)
-      if (!origin) return callback(null, true);
+// ✅ CORS (must be at TOP)
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+// ✅ Fix preflight (YOUR ERROR FIX)
+app.options("*", cors());
 
-// ✅ Middlewares
+// middlewares
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ Test Route
-app.get("/", (req, res) => {
-  res.send("API is working 🚀");
-});
-
-// ✅ Register Route (example)
+// routes
 app.post("/api/user/register", (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    return res.json({
-      success: false,
-      message: "Missing Details",
-    });
-  }
-
-  return res.json({
-    success: true,
-    message: "User registered successfully",
-  });
+  res.json({ success: true, message: "Registered successfully" });
 });
 
-// ✅ PORT
+app.get("/", (req, res) => {
+  res.send("API working 🚀");
+});
+
 const PORT = process.env.PORT || 4000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on ${PORT}`));
