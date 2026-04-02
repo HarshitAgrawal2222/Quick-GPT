@@ -7,19 +7,20 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Allowed origins (VERY IMPORTANT)
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://quick-gpt-o6ef.vercel.app"
-];
-
-// ✅ CORS (must be at TOP)
+// 🔥 FIXED CORS
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (origin.includes("localhost") || origin.includes("vercel.app")) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true
 }));
 
-// ✅ Fix preflight (YOUR ERROR FIX)
 app.options("*", cors());
 
 // middlewares
