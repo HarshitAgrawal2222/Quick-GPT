@@ -10,7 +10,7 @@ const app = express();
 // ✅ Allowed origins (VERY IMPORTANT)
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://quick-gpt-o6ef-7u5i1f5qf-harshit-agrawals-projects-e04e4394.vercel.app"
+  "https://quick-gpt-o6ef.vercel.app"
 ];
 
 // ✅ CORS (must be at TOP)
